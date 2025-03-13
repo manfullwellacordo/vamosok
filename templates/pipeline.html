@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RELATÓRIO COMPLETO COM SAAS - Documentação</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Animate.css -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --text-color: #2c3e50;
+            --light-bg: #ecf0f1;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            color: var(--text-color);
+            background-color: var(--light-bg);
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Open Sans', sans-serif;
+            font-weight: 600;
+        }
+        
+        .navbar {
+            background-color: var(--primary-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 20px;
+        }
+        
+        .content-section {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .timeline {
+            position: relative;
+            padding: 20px 0;
+        }
+        
+        .timeline-item {
+            padding: 20px;
+            border-left: 3px solid var(--secondary-color);
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -10px;
+            top: 25px;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background-color: var(--secondary-color);
+        }
+        
+        .code-block {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+        
+        .feature-card {
+            transition: transform 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .progress-timeline {
+            height: 5px;
+            background-color: var(--light-bg);
+            margin: 20px 0;
+        }
+        
+        .progress-bar {
+            background-color: var(--secondary-color);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-chart-line me-2"></i>
+                RELATÓRIO COMPLETO COM SAAS
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#overview">Visão Geral</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#roadmap">Roadmap</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#challenges">Desafios</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#next-steps">Próximos Passos</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container my-5">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-lg-3">
+                <div class="sidebar">
+                    <h5 class="mb-3">Progresso do Projeto</h5>
+                    <div class="progress-timeline">
+                        <div class="progress-bar" role="progressbar" style="width: 75%"></div>
+                    </div>
+                    <div class="list-group mt-4">
+                        <a href="#fundamentos" class="list-group-item list-group-item-action">
+                            <i class="fas fa-book me-2"></i> Fundamentos
+                        </a>
+                        <a href="#backend" class="list-group-item list-group-item-action">
+                            <i class="fas fa-server me-2"></i> Backend
+                        </a>
+                        <a href="#frontend" class="list-group-item list-group-item-action">
+                            <i class="fas fa-desktop me-2"></i> Frontend
+                        </a>
+                        <a href="#integracao" class="list-group-item list-group-item-action">
+                            <i class="fas fa-plug me-2"></i> Integrações
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-lg-9">
+                <!-- Overview Section -->
+                <section id="overview" class="content-section animate__animated animate__fadeIn">
+                    <h2 class="mb-4">Visão Geral do Projeto</h2>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card feature-card">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        <i class="fas fa-file-excel text-success me-2"></i>
+                                        Processamento XLSX
+                                    </h5>
+                                    <p class="card-text">Sistema avançado de processamento de arquivos Excel com validação e normalização automática.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card feature-card">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        <i class="fas fa-chart-pie text-primary me-2"></i>
+                                        Visualização de Dados
+                                    </h5>
+                                    <p class="card-text">Dashboards interativos com gráficos em tempo real e filtros dinâmicos.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Roadmap Section -->
+                <section id="roadmap" class="content-section mt-5 animate__animated animate__fadeIn">
+                    <h2 class="mb-4">Roadmap do Projeto</h2>
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <h4>Fase 1: Fundamentos e Preparação</h4>
+                            <p>Configuração do ambiente e estruturação inicial do projeto.</p>
+                            <div class="progress mb-3" style="height: 5px;">
+                                <div class="progress-bar" role="progressbar" style="width: 100%"></div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <ul class="list-group">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Configuração do ambiente Python
+                                            <span class="badge bg-success rounded-pill">Concluído</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Instalação das ferramentas necessárias
+                                            <span class="badge bg-success rounded-pill">Concluído</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <ul class="list-group">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Criação do ambiente virtual
+                                            <span class="badge bg-success rounded-pill">Concluído</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Configuração inicial do FastAPI
+                                            <span class="badge bg-success rounded-pill">Concluído</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <h4>Fase 2: Backend Development</h4>
+                            <p>Implementação da API REST e processamento de dados.</p>
+                            <div class="progress mb-3" style="height: 5px;">
+                                <div class="progress-bar" role="progressbar" style="width: 85%"></div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <ul class="list-group">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Estruturação do projeto
+                                            <span class="badge bg-success rounded-pill">Concluído</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Implementação das rotas básicas
+                                            <span class="badge bg-success rounded-pill">Concluído</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <ul class="list-group">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Processamento de dados XLSX
+                                            <span class="badge bg-success rounded-pill">Concluído</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            WebSockets para tempo real
+                                            <span class="badge bg-warning rounded-pill">Em progresso</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <h4>Fase 3: Frontend Development</h4>
+                            <p>Desenvolvimento da interface e componentes interativos.</p>
+                            <div class="progress mb-3" style="height: 5px;">
+                                <div class="progress-bar" role="progressbar" style="width: 70%"></div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <ul class="list-group">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Layout responsivo com Bootstrap
+                                            <span class="badge bg-success rounded-pill">Concluído</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Componentes básicos
+                                            <span class="badge bg-success rounded-pill">Concluído</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <ul class="list-group">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Gráficos interativos
+                                            <span class="badge bg-warning rounded-pill">Em progresso</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Sistema de filtros avançados
+                                            <span class="badge bg-warning rounded-pill">Em progresso</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <h4>Fase 4: Integrações e Melhorias</h4>
+                            <p>Otimizações, monitoramento e segurança.</p>
+                            <div class="progress mb-3" style="height: 5px;">
+                                <div class="progress-bar" role="progressbar" style="width: 40%"></div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <ul class="list-group">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Sistema de logs
+                                            <span class="badge bg-success rounded-pill">Concluído</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Health checks
+                                            <span class="badge bg-warning rounded-pill">Em progresso</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <ul class="list-group">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Otimização de queries
+                                            <span class="badge bg-warning rounded-pill">Em progresso</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Autenticação e segurança
+                                            <span class="badge bg-secondary rounded-pill">Pendente</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Challenges Section -->
+                <section id="challenges" class="content-section mt-5 animate__animated animate__fadeIn">
+                    <h2 class="mb-4">Desafios Práticos</h2>
+                    <div class="accordion" id="challengesAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#challenge1">
+                                    Desafio 1: Processamento de XLSX
+                                </button>
+                            </h2>
+                            <div id="challenge1" class="accordion-collapse collapse show" data-bs-parent="#challengesAccordion">
+                                <div class="accordion-body">
+                                    <p>Objetivo: Ler e processar um arquivo XLSX complexo com múltiplas planilhas e dados inconsistentes.</p>
+                                    <pre class="code-block">
+from pandas import read_excel
+
+def process_xlsx(file_path):
+    # Ler arquivo
+    df = read_excel(file_path)
+    
+    # Limpar dados
+    df = df.dropna()
+    
+    # Normalizar colunas
+    df.columns = df.columns.str.lower()
+    
+    return df</pre>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#challenge2">
+                                    Desafio 2: API REST com FastAPI
+                                </button>
+                            </h2>
+                            <div id="challenge2" class="accordion-collapse collapse" data-bs-parent="#challengesAccordion">
+                                <div class="accordion-body">
+                                    <p>Objetivo: Criar endpoints para manipulação de dados com filtros e paginação.</p>
+                                    <pre class="code-block">
+@app.get("/api/contracts")
+async def get_contracts(
+    db: Session = Depends(get_db),
+    status: str = None,
+    date: str = None,
+    page: int = 1,
+    size: int = 20
+):
+    query = db.query(Contract)
+    
+    # Aplicar filtros
+    if status:
+        query = query.filter(Contract.status == status)
+        
+    if date:
+        filter_date = datetime.strptime(date, "%Y-%m-%d").date()
+        query = query.filter(func.date(Contract.created_at) == filter_date)
+    
+    # Aplicar paginação
+    total = query.count()
+    query = query.offset((page - 1) * size).limit(size)
+    
+    return {
+        "items": query.all(),
+        "total": total,
+        "page": page,
+        "size": size,
+        "pages": (total + size - 1) // size
+    }</pre>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#challenge3">
+                                    Desafio 3: WebSockets para Tempo Real
+                                </button>
+                            </h2>
+                            <div id="challenge3" class="accordion-collapse collapse" data-bs-parent="#challengesAccordion">
+                                <div class="accordion-body">
+                                    <p>Objetivo: Implementar atualizações em tempo real com WebSockets.</p>
+                                    <pre class="code-block">
+@app.websocket("/ws/metrics")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            # Obter métricas atualizadas
+            data = await get_metrics()
+            
+            # Enviar para o cliente
+            await websocket.send_json(data)
+            
+            # Aguardar antes da próxima atualização
+            await asyncio.sleep(5)
+    except:
+        manager.disconnect(websocket)</pre>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#challenge4">
+                                    Desafio 4: Visualização de Dados com Plotly
+                                </button>
+                            </h2>
+                            <div id="challenge4" class="accordion-collapse collapse" data-bs-parent="#challengesAccordion">
+                                <div class="accordion-body">
+                                    <p>Objetivo: Criar gráficos interativos para visualização de dados.</p>
+                                    <pre class="code-block">
+// Criar gráfico de pizza para status
+function createStatusChart(data) {
+    const statusData = {
+        values: [
+            data.total_verified,
+            data.total_analysis,
+            data.total_approved,
+            data.total_pending,
+            data.total_paid,
+            data.total_seized
+        ],
+        labels: [
+            'Verificados',
+            'Em Análise',
+            'Aprovados',
+            'Pendentes',
+            'Quitados',
+            'Apreendidos'
+        ],
+        type: 'pie',
+        hole: 0.4,
+        marker: {
+            colors: [
+                '#198754', // verde - verificados
+                '#0d6efd', // azul - análise
+                '#ffc107', // amarelo - aprovados
+                '#6c757d', // cinza - pendentes
+                '#20c997', // verde água - quitados
+                '#dc3545'  // vermelho - apreendidos
+            ]
+        }
+    };
+
+    const layout = {
+        margin: { t: 0, b: 0, l: 0, r: 0 },
+        showlegend: true,
+        legend: { orientation: 'h', y: -0.2 }
+    };
+
+    Plotly.newPlot('statusChart', [statusData], layout);
+}</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Next Steps Section -->
+                <section id="next-steps" class="content-section mt-5 animate__animated animate__fadeIn">
+                    <h2 class="mb-4">Próximos Passos</h2>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card feature-card">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-database fa-3x mb-3 text-primary"></i>
+                                    <h5>Escalabilidade</h5>
+                                    <p>Migração para PostgreSQL e implementação de workers</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card feature-card">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-chart-bar fa-3x mb-3 text-success"></i>
+                                    <h5>Novas Features</h5>
+                                    <p>Análises preditivas e exportação avançada</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card feature-card">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-shield-alt fa-3x mb-3 text-danger"></i>
+                                    <h5>Segurança</h5>
+                                    <p>Implementação de autenticação e controle de acesso</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>RELATÓRIO COMPLETO COM SAAS</h5>
+                    <p>Um projeto de análise de dados com tecnologias modernas.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p>Desenvolvido com <i class="fas fa-heart text-danger"></i> por Sua Equipe</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS and Popper.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+    
+    <!-- Custom JS -->
+    <script>
+        // Animate elements on scroll
+        document.addEventListener('DOMContentLoaded', function() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('animate__fadeIn');
+                    }
+                });
+            });
+
+            document.querySelectorAll('.content-section').forEach((section) => {
+                observer.observe(section);
+            });
+        });
+    </script>
+</body>
+</html> 
