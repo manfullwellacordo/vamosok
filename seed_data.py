@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from sqlalchemy.orm import sessionmaker
-from models import Contract, DailyMetrics, Alert, init_db
+from models import Contract, DailyMetric, Alert, init_db
 import random
 import os
 from dotenv import load_dotenv
@@ -35,7 +35,7 @@ db.commit()
 contracts = db.query(Contract).all()
 for contract in contracts:
     for i in range(5):
-        metrics = DailyMetrics(
+        metrics = DailyMetric(
             contract_id=contract.id,
             date=datetime.now() - timedelta(days=i),
             productivity=random.uniform(0.6, 1.0),

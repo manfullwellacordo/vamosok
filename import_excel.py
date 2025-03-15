@@ -1,7 +1,7 @@
 import pandas as pd
 from datetime import datetime, timedelta
 from sqlalchemy.orm import sessionmaker
-from models import Contract, DailyMetrics, Alert, init_db
+from models import Contract, DailyMetric, Alert, init_db
 import os
 from dotenv import load_dotenv
 import numpy as np
@@ -89,7 +89,7 @@ def process_excel_file(file_path, grupo):
                     db.flush()
                     
                     # Criar métricas
-                    metrics = DailyMetrics(
+                    metrics = DailyMetric(
                         contract_id=contract.id,
                         date=datetime.now(),
                         productivity=np.random.uniform(0.6, 1.0),
@@ -118,7 +118,7 @@ def process_excel_file(file_path, grupo):
 # Limpar dados existentes
 print("Limpando dados existentes...")
 db.query(Alert).delete()
-db.query(DailyMetrics).delete()
+db.query(DailyMetric).delete()
 db.query(Contract).delete()
 db.commit()
 

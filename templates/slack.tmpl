@@ -1,0 +1,31 @@
+{{ define "slack.default.title" }}
+[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .GroupLabels.SortedPairs.Values | join " " }}
+{{ end }}
+
+{{ define "slack.default.text" }}
+{{ if gt (len .Alerts.Firing) 0 }}
+*Firing Alerts:*
+{{ range .Alerts.Firing }}
+• *{{ .Labels.alertname }}*
+  - Started: {{ .StartsAt.Format "2006-01-02 15:04:05 MST" }}
+  - Description: {{ .Annotations.description }}
+  - Labels: {{ range .Labels.SortedPairs }}
+    - {{ .Name }}: {{ .Value }}{{ end }}
+{{ end }}
+{{ end }}
+
+{{ if gt (len .Alerts.Resolved) 0 }}
+*Resolved Alerts:*
+{{ range .Alerts.Resolved }}
+• *{{ .Labels.alertname }}*
+  - Resolved: {{ .EndsAt.Format "2006-01-02 15:04:05 MST" }}
+  - Description: {{ .Annotations.description }}
+  - Labels: {{ range .Labels.SortedPairs }}
+    - {{ .Name }}: {{ .Value }}{{ end }}
+{{ end }}
+{{ end }}
+{{ end }}
+
+{{ define "slack.default.titlelink" }}
+{{ .ExternalURL }}/#/alerts
+{{ end }}

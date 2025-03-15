@@ -1,232 +1,203 @@
-# Dashboard de Análise de Contratos
+# 📊 Dashboard de Análise de Contratos
 
-Um sistema de dashboard moderno para análise e monitoramento de contratos em tempo real, construído com FastAPI, WebSockets, Plotly Dash e SQLite.
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.68.0-009688.svg?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
+[![Python](https://img.shields.io/badge/Python-3.9+-3776AB.svg?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![SQLite](https://img.shields.io/badge/SQLite-003B57.svg?style=for-the-badge&logo=sqlite)](https://sqlite.org)
+[![Plotly](https://img.shields.io/badge/Plotly-3F4F75.svg?style=for-the-badge&logo=plotly)](https://plotly.com)
 
-## Características
+> 🚀 Sistema avançado de análise de contratos com dashboard em tempo real, processamento de dados XLSX e visualizações interativas.
 
-- 🚀 Dashboard em tempo real com WebSockets
-- 📊 Visualizações interativas com Plotly
-- 🔔 Sistema de alertas em tempo real
-- 📱 Design responsivo e moderno
-- 🔒 Banco de dados SQLite para persistência
-- 🐳 Containerização com Docker
+## ✨ Características Principais
 
-## Requisitos
+- 📈 **Dashboard Interativo**
+  - Gráficos em tempo real com Plotly
+  - Filtros dinâmicos
+  - Atualizações via WebSocket
 
-- Python 3.8 ou superior
-- pip (gerenciador de pacotes Python)
-- Docker (opcional, para containerização)
-- Navegador web moderno
+- 📊 **Processamento de Dados**
+  - Importação de arquivos XLSX
+  - Normalização automática
+  - Validação de dados
 
-## Instalação Local
+- 🔄 **Atualizações em Tempo Real**
+  - WebSockets para dados ao vivo
+  - Cache inteligente
+  - Notificações em tempo real
 
-1. Clone o repositório:
+- 🛡️ **Recursos Avançados**
+  - Sistema de logs robusto
+  - Compressão GZip
+  - Tratamento de erros avançado
+
+## 🚀 Começando
+
+### Pré-requisitos
+
 ```bash
-git clone https://github.com/seu-usuario/dashboard-contratos.git
-cd dashboard-contratos
+# Python 3.9 ou superior
+python --version
+
+# Ambiente virtual
+python -m venv .venv
 ```
 
-2. Crie e ative um ambiente virtual:
+### Instalação
+
 ```bash
+# Ativar ambiente virtual
 # Windows
-python -m venv .venv
 .venv\Scripts\activate
 
-# Linux/macOS
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-3. Instale as dependências:
-```bash
+# Instalar dependências
 pip install -r requirements.txt
+
+# Iniciar o servidor
+python app.py
 ```
 
-4. Configure as variáveis de ambiente:
-```bash
-# Copie o arquivo de exemplo
-cp .env.example .env
-
-# Edite o arquivo .env com suas configurações
-# DB_PATH=relatorio_dashboard.db
-# PORT=8001
-# HOST=127.0.0.1
-# ENVIRONMENT=development
-```
-
-5. Execute o servidor:
-```bash
-uvicorn app:app --reload --port 8001
-```
-
-6. Acesse o dashboard em `http://localhost:8001`
-
-## Execução com Docker
-
-1. Construa e inicie os containers:
-```bash
-docker-compose up -d
-```
-
-2. Acesse o dashboard em `http://localhost:8001`
-
-Para parar os containers:
-```bash
-docker-compose down
-```
-
-## Estrutura do Projeto
+## 🏗️ Estrutura do Projeto
 
 ```
-dashboard-contratos/
-├── app.py              # Aplicação FastAPI principal
-├── models.py           # Modelos SQLAlchemy
-├── websocket_manager.py # Gerenciador de WebSockets
-├── templates/          # Templates HTML
-│   └── dashboard.html
-├── static/            # Arquivos estáticos
-│   ├── styles.css
-│   └── scripts.js
-├── data/             # Diretório para banco de dados
+relatoriotest/
+├── app.py              # Aplicação principal FastAPI
+├── models/            # Modelos SQLAlchemy
+├── templates/         # Templates HTML
+├── static/           # Arquivos estáticos
 ├── tests/            # Testes unitários
-├── Dockerfile        # Configuração Docker
-├── docker-compose.yml # Configuração Docker Compose
-└── requirements.txt  # Dependências Python
+└── requirements.txt  # Dependências
 ```
 
-## API Endpoints
+## 📚 Documentação da API
 
-- `GET /` - Dashboard principal
-- `GET /api/metrics` - Métricas em tempo real
-- `GET /api/alerts` - Alertas ativos
-- `WS /ws/metrics` - WebSocket para métricas
-- `WS /ws/alerts` - WebSocket para alertas
+### Endpoints Principais
 
-## Desenvolvimento
+#### GET /api/metrics
+```python
+GET /api/metrics?start_date=2024-01-01&end_date=2024-12-31
+```
+Retorna métricas filtradas por data com cache inteligente.
 
-### Executando Testes
+#### WebSocket /ws
+```python
+ws://localhost:8001/ws
+```
+Conexão WebSocket para atualizações em tempo real.
 
-```bash
-pytest -v
+## 📈 Visualizações Disponíveis
+
+### 1. Status dos Contratos
+- 🟢 Verificados
+- 🔵 Em Análise
+- 🟡 Aprovados
+- ⚪ Pendentes
+- 🟣 Quitados
+- 🔴 Apreendidos
+
+### 2. Métricas Temporais
+- 📊 Gráficos de tendência
+- 📈 Análise de progressão
+- 📉 Comparativos mensais
+
+## ⚙️ Configuração Avançada
+
+### Variáveis de Ambiente
+```env
+DATABASE_URL=sqlite+aiosqlite:///./sql_app.db
+PORT=8001
+DEBUG=true
+LOG_LEVEL=INFO
 ```
 
-### Verificando Cobertura de Testes
-
-```bash
-pytest --cov=. tests/
+### Cache
+```python
+# Configuração de Cache
+CACHE_TTL=300  # 5 minutos
+CACHE_MAX_SIZE=100
 ```
 
-### Linting e Formatação
+## 🔒 Segurança
 
-```bash
-# Verificar estilo de código
-flake8 .
+- ✅ Validação de dados
+- 🔐 Sanitização de inputs
+- 🛡️ Proteção contra injeção SQL
+- 🔒 Rate limiting
 
-# Formatar código
-black .
+## 🚦 Status do Projeto
+
+- ✅ Configuração inicial
+- ✅ API REST básica
+- ✅ Processamento XLSX
+- ✅ WebSockets
+- 🟡 Autenticação
+- 🟡 Testes automatizados
+- ⚪ Documentação completa
+
+## 📝 Logs e Monitoramento
+
+```python
+# Exemplo de log estruturado
+{
+    "timestamp": "2024-01-20T10:00:00",
+    "level": "INFO",
+    "event": "metric_update",
+    "data": {
+        "contracts": 150,
+        "processed": 145,
+        "pending": 5
+    }
+}
 ```
 
-## Implantação
+## 🔄 Pipeline de Dados
 
-### Google Cloud Run
-
-1. Instale o Google Cloud SDK
-2. Configure o projeto:
-```bash
-gcloud init
-gcloud config set project seu-projeto
+```mermaid
+graph LR
+    A[XLSX] --> B[Processamento]
+    B --> C[Normalização]
+    C --> D[Database]
+    D --> E[Cache]
+    E --> F[API]
+    F --> G[Dashboard]
 ```
 
-3. Construa e envie a imagem:
-```bash
-gcloud builds submit --tag gcr.io/seu-projeto/dashboard-contratos
-```
+## 🎯 Próximos Passos
 
-4. Implante no Cloud Run:
-```bash
-gcloud run deploy dashboard-contratos \
-  --image gcr.io/seu-projeto/dashboard-contratos \
-  --platform managed \
-  --allow-unauthenticated \
-  --region us-central1
-```
+1. 📊 Migração para PostgreSQL
+2. 🔐 Implementação de autenticação
+3. 📈 Análises preditivas
+4. 📱 Interface mobile
+5. 🔄 CI/CD pipeline
 
-### Heroku
+## 🤝 Contribuindo
 
-1. Instale o Heroku CLI
-2. Faça login e crie um novo app:
-```bash
-heroku login
-heroku create dashboard-contratos
-```
-
-3. Configure as variáveis de ambiente:
-```bash
-heroku config:set ENVIRONMENT=production
-```
-
-4. Implante:
-```bash
-git push heroku main
-```
-
-### Railway
-
-1. Conecte sua conta GitHub ao Railway
-2. Crie um novo projeto a partir do repositório
-3. Configure as variáveis de ambiente
-4. Railway detectará automaticamente o Dockerfile e fará a implantação
-
-## Manutenção
-
-### Backup do Banco de Dados
-
-```bash
-# Local
-sqlite3 data/relatorio_dashboard.db ".backup 'backup.db'"
-
-# No container Docker
-docker-compose exec web sqlite3 /app/data/relatorio_dashboard.db ".backup '/app/data/backup.db'"
-```
-
-### Atualização de Dependências
-
-```bash
-pip install --upgrade -r requirements.txt
-```
-
-## Solução de Problemas
-
-### Erro de Conexão com o Banco de Dados
-
-1. Verifique se o arquivo do banco de dados existe
-2. Confirme as permissões do arquivo
-3. Verifique a variável de ambiente `DB_PATH`
-
-### Erro ao Carregar Dados
-
-1. Verifique os logs do servidor
-2. Confirme se todas as tabelas foram criadas
-3. Verifique a conexão WebSocket no console do navegador
-
-### Problemas de Performance
-
-1. Monitore o uso de recursos
-2. Verifique o tamanho do banco de dados
-3. Considere adicionar índices às tabelas mais consultadas
-
-## Contribuindo
-
-1. Fork o repositório
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
+1. Fork o projeto
+2. Crie sua Feature Branch (`git checkout -b feature/AmazingFeature`)
 3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
+4. Push para a Branch (`git push origin feature/AmazingFeature`)
 5. Abra um Pull Request
 
-## Suporte
+## 📫 Suporte
 
-Para suporte, envie um email para suporte@exemplo.com ou abra uma issue no GitHub.
+- 📧 Email: igorofyeshua@gmail.com
+- 📱 Telegram: [@manfullwell]
 
-## Licença
+## 📄 Licença
 
-Este projeto está licenciado sob a licença MIT - veja o arquivo [LICENSE](LICENSE) para detalhes. 
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+
+---
+
+<p align="center">
+  by: Igor Soares
+</p>
+
+<p align="center">
+  Desenvolvido com ❤️ pela Equipe de Desenvolvimento
+</p>
+
+<p align="center">
+  <a href="#-características-principais">Topo</a> •
+  <a href="#-começando">Instalação</a> •
+  <a href="#-documentação-da-api">API</a> •
+  <a href="#-contribuindo">Contribuir</a>
+</p> 

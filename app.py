@@ -1,311 +1,221 @@
-from fastapi import FastAPI, WebSocket, HTTPException, Depends, Request
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
-from fastapi.middleware.wsgi import WSGIMiddleware
-from sqlalchemy.orm import Session
-from sqlalchemy import func
+from fastapi import FastAPI, WebSocket, Depends, HTTPException, BackgroundTasks, Request
+from fastapi.responses import JSONResponse
+from fastapi.middleware.gzip import GZipMiddleware
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker, selectinload
+from sqlalchemy import func, select
 from datetime import datetime, timedelta
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
-from dash import Dash, html, dcc
-import dash_bootstrap_components as dbc
-from pathlib import Path
-import os
-from dotenv import load_dotenv
-from health_check import HealthCheck
 import logging
-from sqlalchemy.sql import text
+from logging.handlers import RotatingFileHandler
+import json
+from typing import List, Optional
+import asyncio
+import sys
+import multiprocessing
+from aiocache import Cache
+from cachetools import TTLCache
+from contextlib import asynccontextmanager
 
-from models import Contract, DailyMetrics, Alert, init_db
-from websocket_manager import manager
-
-# Configurar logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('app.log')
-    ]
-)
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Load environment variables
-load_dotenv()
+# Add file handler
+file_handler = RotatingFileHandler('app.log', maxBytes=10485760, backupCount=5)
+file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logger.addHandler(file_handler)
 
-# Initialize FastAPI app
-app = FastAPI(title="Dashboard de Análise de Contratos")
+# Initialize cache
+metrics_cache = TTLCache(maxsize=100, ttl=300)  # Cache for 5 minutes
+cache = Cache(Cache.MEMORY)
 
-# Setup directories
-BASE_DIR = Path(__file__).resolve().parent
-TEMPLATES_DIR = BASE_DIR / "templates"
-STATIC_DIR = BASE_DIR / "static"
-
-# Create directories if they don't exist
-TEMPLATES_DIR.mkdir(exist_ok=True)
-STATIC_DIR.mkdir(exist_ok=True)
-
-# Mount static files
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-
-# Templates
-templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
-
-# Initialize Dash app
-dash_app = Dash(
-    __name__,
-    requests_pathname_prefix="/dash/",
-    assets_folder=str(STATIC_DIR)
+# Database configuration
+DATABASE_URL = "sqlite+aiosqlite:///./sql_app.db"
+engine = create_async_engine(
+    DATABASE_URL,
+    connect_args={
+        "check_same_thread": False,
+        "timeout": 30
+    },
+    pool_pre_ping=True,
+    pool_size=20,
+    max_overflow=0,
+    echo=True
 )
 
-# Define the Dash layout
-dash_app.layout = html.Div([
-    html.H1("Dashboard de Análise de Contratos"),
-    html.Div([
-        html.Div([
-            html.H3("Métricas Principais"),
-            html.Div(id="metrics-container")
-        ]),
-        html.Div([
-            html.H3("Gráficos"),
-            dcc.Graph(id="status-chart"),
-            dcc.Graph(id="resolution-chart")
-        ])
-    ])
-])
+async_session = sessionmaker(
+    engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autoflush=False
+)
 
-# Mount Dash app
-app.mount("/dash", WSGIMiddleware(dash_app.server))
+# FastAPI app initialization
+app = FastAPI(title="Dashboard API")
 
-# Database
-DB_PATH = os.getenv("DB_PATH", "relatorio_dashboard.db")
-engine = init_db(f"sqlite:///{DB_PATH}")
+# Add GZip compression
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
-# Database session dependency
-def get_db():
-    from sqlalchemy.orm import sessionmaker
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# WebSocket manager
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
 
-# Startup event
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+        logger.info(f"New WebSocket connection. Total connections: {len(self.active_connections)}")
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+        logger.info(f"WebSocket disconnected. Remaining connections: {len(self.active_connections)}")
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            try:
+                await connection.send_text(message)
+            except Exception as e:
+                logger.error(f"Error broadcasting message: {str(e)}")
+                await self.disconnect(connection)
+
+manager = ConnectionManager()
+
+@asynccontextmanager
+async def get_db():
+    async with async_session() as session:
+        try:
+            yield session
+        except Exception as e:
+            logger.error(f"Database session error: {str(e)}")
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
+
+async def update_metrics():
+    while True:
+        try:
+            async with async_session() as session:
+                # Fetch and process metrics
+                query = select(Metrics).order_by(Metrics.date.desc()).limit(100)
+                result = await session.execute(query)
+                metrics = result.scalars().all()
+                
+                # Update cache
+                metrics_data = [metric.to_dict() for metric in metrics]
+                metrics_cache.update({
+                    'latest_metrics': metrics_data
+                })
+                
+                # Broadcast updates
+                await manager.broadcast(json.dumps({
+                    'type': 'metrics_update',
+                    'data': metrics_data
+                }))
+                
+        except Exception as e:
+            logger.error(f"Error updating metrics: {str(e)}")
+        
+        await asyncio.sleep(300)  # Update every 5 minutes
+
 @app.on_event("startup")
 async def startup_event():
-    """Executa verificações do sistema durante a inicialização"""
     try:
-        logger.info("Starting system initialization...")
+        # Test database connection
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database tables created successfully")
         
-        # Verificar diretórios necessários
-        for directory in [TEMPLATES_DIR, STATIC_DIR]:
-            if not directory.exists():
-                logger.warning(f"Creating missing directory: {directory}")
-                directory.mkdir(parents=True, exist_ok=True)
-
-        # Executar verificações de saúde do sistema
-        checker = HealthCheck()
-        check_result = checker.run_all_checks()
-        
-        # Registrar métricas de performance
-        for metric, value in checker.performance_metrics.items():
-            logger.info(f"Performance metric - {metric}: {value:.2f}")
-        
-        # Registrar avisos
-        for warning in checker.warnings:
-            logger.warning(warning)
-        
-        # Se houver erros críticos, não permitir que o servidor inicie
-        if not check_result:
-            for error in checker.errors:
-                logger.error(f"Critical error: {error}")
-            raise SystemExit("System cannot start due to critical errors")
-        
-        # Inicializar WebSocket manager
-        await manager.startup()
-        logger.info("WebSocket manager initialized")
-        
-        # Verificar conexão com banco de dados
-        try:
-            db = next(get_db())
-            db.execute(text("SELECT 1"))
-            logger.info("Database connection verified")
-        except Exception as e:
-            logger.error(f"Database connection failed: {str(e)}")
-            raise SystemExit("Cannot establish database connection")
-        finally:
-            db.close()
-        
-        logger.info("System initialization completed successfully")
+        # Start background tasks
+        asyncio.create_task(update_metrics())
+        logger.info("Background tasks started")
         
     except Exception as e:
         logger.error(f"Startup error: {str(e)}")
-        raise SystemExit(f"Error during startup: {str(e)}")
+        raise
 
-# FastAPI routes
-@app.get("/", response_class=HTMLResponse)
-async def root(request: Request):
-    return templates.TemplateResponse(
-        "dashboard.html",
-        {
-            "request": request,
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }
-    )
-
-@app.websocket("/ws/{channel}")
-async def websocket_endpoint(websocket: WebSocket, channel: str):
-    await manager.connect(websocket, channel)
+@app.on_event("shutdown")
+async def shutdown_event():
     try:
-        while True:
-            data = await websocket.receive_text()
-            await manager.send_personal_message(
-                {"message": f"You wrote: {data}"}, websocket
-            )
-    except:
-        manager.disconnect(websocket, channel)
+        await engine.dispose()
+        logger.info("Database connections closed")
+    except Exception as e:
+        logger.error(f"Shutdown error: {str(e)}")
 
 @app.get("/api/metrics")
 async def get_metrics(
-    db: Session = Depends(get_db),
-    grupo: str = None,
-    collaborator: str = None,
-    status: str = None,
-    data: str = None
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    db: AsyncSession = Depends(get_db)
 ):
     try:
-        # Get current date for filtering
-        today = datetime.now().date()
-        today_start = datetime.combine(today, datetime.min.time())
-        today_end = datetime.combine(today, datetime.max.time())
-
-        # Base query for contracts
-        query = db.query(Contract)
-
-        # Apply filters
-        if grupo:
-            # Filter by group (JULIO or LEANDRO)
-            if grupo == "JULIO":
-                query = query.filter(Contract.contract_number.like("JULIO-%"))
-            elif grupo == "LEANDRO":
-                query = query.filter(Contract.contract_number.like("LEANDRO-%"))
+        # Check cache first
+        cache_key = f"metrics_{start_date}_{end_date}"
+        cached_data = await cache.get(cache_key)
+        if cached_data:
+            return JSONResponse(content=cached_data)
         
-        if collaborator:
-            query = query.filter(Contract.collaborator == collaborator)
-            
-        if status:
-            query = query.filter(Contract.status == status)
-            
-        if data:
-            filter_date = datetime.strptime(data, "%Y-%m-%d").date()
-            query = query.filter(
-                func.date(Contract.created_at) == filter_date
-            )
-
-        # Get metrics by collaborator
-        collaborator_metrics = {}
-        collaborators = query.with_entities(Contract.collaborator).distinct().all()
+        query = select(Metrics)
         
-        for (collaborator,) in collaborators:
-            # Get contracts for this collaborator
-            collaborator_contracts = query.filter(Contract.collaborator == collaborator).all()
+        if start_date:
+            query = query.filter(Metrics.date >= start_date)
+        if end_date:
+            query = query.filter(Metrics.date <= end_date)
             
-            # Determine group based on contract numbers
-            julio_contracts = sum(1 for c in collaborator_contracts if "JULIO-" in c.contract_number)
-            leandro_contracts = sum(1 for c in collaborator_contracts if "LEANDRO-" in c.contract_number)
-            
-            # Assign group based on majority of contracts
-            grupo = "JULIO" if julio_contracts > leandro_contracts else "LEANDRO"
-            
-            # Status counts for this collaborator
-            status_counts = {}
-            for status in ['verified', 'analysis', 'approved', 'pending', 'paid', 'seized', 'priority', 'high_priority', 'cancelled', 'other']:
-                count = query.filter(
-                    Contract.collaborator == collaborator,
-                    Contract.status == status
-                ).count()
-                status_counts[status] = count
-            
-            # Average resolution time
-            avg_resolution = db.query(func.avg(Contract.resolution_time)).filter(
-                Contract.collaborator == collaborator,
-                Contract.resolution_time.isnot(None)
-            ).scalar() or 0
-            
-            # Contracts completed today
-            completed_today = query.filter(
-                Contract.collaborator == collaborator,
-                Contract.status == 'verified',
-                Contract.updated_at >= today_start,
-                Contract.updated_at <= today_end
-            ).count()
-            
-            collaborator_metrics[collaborator] = {
-                "grupo": grupo,
-                "status_counts": status_counts,
-                "avg_resolution_time": round(avg_resolution, 2),
-                "completed_today": completed_today,
-                "total_contracts": sum(status_counts.values())
-            }
-
-        # Overall metrics
-        total_contracts = query.count()
-        total_verified = query.filter(Contract.status == 'verified').count()
-        total_analysis = query.filter(Contract.status == 'analysis').count()
-        total_approved = query.filter(Contract.status == 'approved').count()
-        total_pending = query.filter(Contract.status == 'pending').count()
-        total_paid = query.filter(Contract.status == 'paid').count()
-        total_seized = query.filter(Contract.status == 'seized').count()
-        total_priority = query.filter(Contract.status == 'priority').count()
-        total_high_priority = query.filter(Contract.status == 'high_priority').count()
-        total_cancelled = query.filter(Contract.status == 'cancelled').count()
-        total_other = query.filter(Contract.status == 'other').count()
-
-        return {
-            "collaborator_metrics": collaborator_metrics,
-            "total_metrics": {
-                "total_contracts": total_contracts,
-                "total_verified": total_verified,
-                "total_analysis": total_analysis,
-                "total_approved": total_approved,
-                "total_pending": total_pending,
-                "total_paid": total_paid,
-                "total_seized": total_seized,
-                "total_priority": total_priority,
-                "total_high_priority": total_high_priority,
-                "total_cancelled": total_cancelled,
-                "total_other": total_other
-            },
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        result = await db.execute(query.options(selectinload(Metrics.alerts)))
+        metrics = result.scalars().all()
+        
+        response_data = {
+            "metrics": [metric.to_dict() for metric in metrics],
+            "count": len(metrics),
+            "timestamp": datetime.now().isoformat()
         }
+        
+        # Cache the results
+        await cache.set(cache_key, response_data, ttl=300)
+        
+        return JSONResponse(content=response_data)
+        
     except Exception as e:
-        print(f"Erro ao obter métricas: {str(e)}")
+        logger.error(f"Error fetching metrics: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/alerts")
-async def get_alerts(db: Session = Depends(get_db)):
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
     try:
-        # Get active alerts
-        alerts = db.query(Alert).filter(Alert.resolved_at.is_(None)).all()
-        return {
-            "alerts": [
-                {
-                    "id": alert.id,
-                    "type": alert.type,
-                    "message": alert.message,
-                    "created_at": alert.created_at.strftime("%Y-%m-%d %H:%M:%S")
-                }
-                for alert in alerts
-            ]
-        }
+        while True:
+            data = await websocket.receive_text()
+            await websocket.send_text(f"Message received: {data}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"WebSocket error: {str(e)}")
+    finally:
+        manager.disconnect(websocket)
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Global exception: {str(exc)}")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": str(exc),
+            "path": str(request.url),
+            "timestamp": datetime.now().isoformat()
+        }
+    )
 
 if __name__ == "__main__":
+    if sys.platform == 'win32':
+        multiprocessing.set_start_method('spawn')
+    
     import uvicorn
-    port = int(os.getenv("PORT", 8001))
-    host = os.getenv("HOST", "127.0.0.1")
-    uvicorn.run("app:app", host=host, port=port, reload=True) 
+    config = uvicorn.Config(
+        app=app,
+        host="0.0.0.0",
+        port=8001,
+        workers=1,
+        loop="asyncio",
+        reload=True
+    )
+    server = uvicorn.Server(config)
+    server.run()

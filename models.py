@@ -1,47 +1,45 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, create_engine
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
+from database import Base
 from datetime import datetime
 
-Base = declarative_base()
-
 class Contract(Base):
-    __tablename__ = 'contracts'
-    
-    id = Column(Integer, primary_key=True)
-    contract_number = Column(String(50), unique=True)
-    collaborator = Column(String(100))
-    status = Column(String(50))
+    __tablename__ = "contracts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    contract_number = Column(String, unique=True, index=True)
+    collaborator = Column(String, index=True)
+    status = Column(String, index=True)
     resolution_time = Column(Float)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    metrics = relationship("DailyMetrics", back_populates="contract")
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, index=True)
+
+    daily_metrics = relationship("DailyMetric", back_populates="contract")
     alerts = relationship("Alert", back_populates="contract")
 
-class DailyMetrics(Base):
-    __tablename__ = 'daily_metrics'
-    
-    id = Column(Integer, primary_key=True)
-    contract_id = Column(Integer, ForeignKey('contracts.id'))
-    date = Column(DateTime)
+class DailyMetric(Base):
+    __tablename__ = "daily_metrics"
+
+    id = Column(Integer, primary_key=True, index=True)
+    contract_id = Column(Integer, ForeignKey("contracts.id"), index=True)
+    date = Column(DateTime, index=True)
     productivity = Column(Float)
     efficiency = Column(Float)
     resolution_rate = Column(Float)
     created_at = Column(DateTime, default=datetime.utcnow)
-    
-    contract = relationship("Contract", back_populates="metrics")
+
+    contract = relationship("Contract", back_populates="daily_metrics")
 
 class Alert(Base):
-    __tablename__ = 'alerts'
-    
-    id = Column(Integer, primary_key=True)
-    contract_id = Column(Integer, ForeignKey('contracts.id'))
-    type = Column(String(50))  # 'warning', 'critical', 'info'
-    message = Column(String(500))
-    created_at = Column(DateTime, default=datetime.utcnow)
+    __tablename__ = "alerts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    contract_id = Column(Integer, ForeignKey("contracts.id"), index=True)
+    type = Column(String)
+    message = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
     resolved_at = Column(DateTime, nullable=True)
-    
+
     contract = relationship("Contract", back_populates="alerts")
 
 def init_db(db_url):

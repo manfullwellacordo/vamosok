@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from datetime import datetime, timedelta
 
 from app import app, get_db
-from models import Base, Contract, DailyMetrics, Alert
+from models import Base, Contract, DailyMetric, Alert
 
 # Test database
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
@@ -63,7 +63,7 @@ def test_metrics_with_data(db_session):
     )
     db_session.add(contract)
     
-    metrics = DailyMetrics(
+    metrics = DailyMetric(
         contract_id=1,
         date=datetime.utcnow().date(),
         productivity=0.8,

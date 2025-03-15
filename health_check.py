@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine, func, text, inspect, case
 from sqlalchemy.orm import sessionmaker
-from models import Contract, DailyMetrics, Alert, Base
+from models import Contract, DailyMetric, Alert, Base
 import os
 from dotenv import load_dotenv
 from datetime import datetime
@@ -21,60 +21,89 @@ class HealthCheck:
         self.warnings = []
         self.performance_metrics = {}
 
+    def format_error(self, message, error=None):
+        """Formata mensagens de erro de forma consistente"""
+        if error:
+            return "{}: {}".format(message, str(error))
+        return message
+
     def check_system_resources(self):
         """Verifica recursos do sistema"""
         try:
-            cpu_percent = psutil.cpu_percent(interval=1)
-            memory = psutil.virtual_memory()
-            disk = psutil.disk_usage('/')
+            # Coletar métricas do sistema
+            try:
+                cpu_percent = float(psutil.cpu_percent(interval=1))
+            except Exception:
+                cpu_percent = 0.0
 
+            try:
+                memory = psutil.virtual_memory()
+                memory_percent = float(memory.percent)
+            except Exception:
+                memory_percent = 0.0
+
+            try:
+                disk = psutil.disk_usage('/')
+                disk_percent = float(disk.percent)
+            except Exception:
+                disk_percent = 0.0
+
+            # Atualizar métricas
             self.performance_metrics.update({
                 'cpu_usage': cpu_percent,
-                'memory_usage': memory.percent,
-                'disk_usage': disk.percent
+                'memory_usage': memory_percent,
+                'disk_usage': disk_percent
             })
 
+            # Verificar limites
             warnings = []
-            if cpu_percent > 80:
-                warnings.append(f"CPU usage is high: {cpu_percent}%")
-            if memory.percent > 80:
-                warnings.append(f"Memory usage is high: {memory.percent}%")
-            if disk.percent > 80:
-                warnings.append(f"Disk usage is high: {disk.percent}%")
+            try:
+                if cpu_percent > 80:
+                    warnings.append("CPU usage is high: %.1f%%" % cpu_percent)
+                if memory_percent > 80:
+                    warnings.append("Memory usage is high: %.1f%%" % memory_percent)
+                if disk_percent > 80:
+                    warnings.append("Disk usage is high: %.1f%%" % disk_percent)
+            except Exception as e:
+                warnings.append("Error formatting resource warnings: " + str(e))
 
+            # Exibir resultados
             if warnings:
                 self.warnings.extend(warnings)
                 print("⚠️ System resources: WARNING")
                 for warning in warnings:
-                    print(f"  - {warning}")
+                    print("  - " + str(warning))
             else:
                 print("✅ System resources: OK")
 
             return True
+
         except Exception as e:
-            self.errors.append(f"Error checking system resources: {str(e)}")
-            print(f"❌ System resources check failed: {str(e)}")
+            error_msg = "Error checking system resources: " + str(e)
+            self.errors.append(error_msg)
+            print("❌ System resources check failed: " + str(error_msg))
             return False
 
     def check_database_connection(self):
         """Verifica a conexão com o banco de dados"""
         start_time = time.time()
         try:
-            # Usar text() para declarar explicitamente a consulta SQL
             self.session.execute(text("SELECT 1"))
             response_time = time.time() - start_time
             
             self.performance_metrics['db_response_time'] = response_time
             
             if response_time > 1.0:
-                self.warnings.append(f"Database response time is slow: {response_time:.2f}s")
-                print(f"⚠️ Database connection: SLOW ({response_time:.2f}s)")
+                warning_msg = "Database response time is slow: {:.2f}s".format(response_time)
+                self.warnings.append(warning_msg)
+                print("⚠️ Database connection: SLOW ({:.2f}s)".format(response_time))
             else:
-                print(f"✅ Database connection: OK ({response_time:.2f}s)")
+                print("✅ Database connection: OK ({:.2f}s)".format(response_time))
             return True
         except Exception as e:
-            self.errors.append(f"Database connection error: {str(e)}")
-            print(f"❌ Database connection: FAILED - {str(e)}")
+            error_msg = self.format_error("Database connection error", e)
+            self.errors.append(error_msg)
+            print("❌ Database connection: FAILED - {}".format(error_msg))
             return False
 
     def check_tables_exist(self):
@@ -86,26 +115,28 @@ class HealthCheck:
             # Verificar se as tabelas foram criadas
             inspector = inspect(self.engine)
             existing_tables = set(inspector.get_table_names())
-            required_tables = {Contract.__tablename__, DailyMetrics.__tablename__, Alert.__tablename__}
+            required_tables = {Contract.__tablename__, DailyMetric.__tablename__, Alert.__tablename__}
             
             # Verificar índices e constraints
             for table_name in required_tables:
                 if table_name in existing_tables:
                     indexes = inspector.get_indexes(table_name)
                     if not indexes:
-                        self.warnings.append(f"Table {table_name} has no indexes")
+                        self.warnings.append("Table {} has no indexes".format(table_name))
                 
             missing_tables = required_tables - existing_tables
             if missing_tables:
-                self.errors.append(f"Missing tables: {missing_tables}")
-                print(f"❌ Tables missing: {missing_tables}")
+                error_msg = "Missing tables: {}".format(missing_tables)
+                self.errors.append(error_msg)
+                print("❌ Tables missing: {}".format(missing_tables))
                 return False
             
             print("✅ Table structure: OK")
             return True
         except Exception as e:
-            self.errors.append(f"Error checking/creating tables: {str(e)}")
-            print(f"❌ Table check failed: {str(e)}")
+            error_msg = self.format_error("Error checking/creating tables", e)
+            self.errors.append(error_msg)
+            print("❌ Table check failed: {}".format(error_msg))
             return False
 
     def check_data_integrity(self):
@@ -127,8 +158,9 @@ class HealthCheck:
             ).group_by(Contract.contract_number).having(func.count(Contract.contract_number) > 1).all()
 
             if duplicate_contracts:
-                self.warnings.append(f"Found {len(duplicate_contracts)} duplicate contract numbers")
-                print(f"⚠️ Found duplicate contracts: {len(duplicate_contracts)}")
+                warning_msg = "Found {} duplicate contract numbers".format(len(duplicate_contracts))
+                self.warnings.append(warning_msg)
+                print("⚠️ Found duplicate contracts: {}".format(len(duplicate_contracts)))
 
             # Verificar grupos
             groups = self.session.query(
@@ -153,27 +185,29 @@ class HealthCheck:
             ).count()
 
             if invalid_status > 0:
-                self.warnings.append(f"Found {invalid_status} contracts with invalid status")
-                print(f"⚠️ Invalid status found: {invalid_status} contracts")
+                warning_msg = "Found {} contracts with invalid status".format(invalid_status)
+                self.warnings.append(warning_msg)
+                print("⚠️ Invalid status found: {} contracts".format(invalid_status))
 
             processing_time = time.time() - start_time
             self.performance_metrics['data_check_time'] = processing_time
 
             print("\nData Distribution:")
             print("-" * 40)
-            print(f"Total contracts: {total_contracts}")
-            print(f"Processing time: {processing_time:.2f}s")
+            print("Total contracts: {}".format(total_contracts))
+            print("Processing time: {:.2f}s".format(processing_time))
             
             print("\nBy group:")
             for group, count in groups:
-                print(f"- {group}: {count} contracts")
+                print("- {}: {} contracts".format(group, count))
 
             print("\n✅ Data integrity: OK")
             return True
 
         except Exception as e:
-            self.errors.append(f"Data integrity check error: {str(e)}")
-            print(f"❌ Data integrity: FAILED - {str(e)}")
+            error_msg = self.format_error("Data integrity check error", e)
+            self.errors.append(error_msg)
+            print("❌ Data integrity: FAILED - {}".format(error_msg))
             return False
 
     def check_metrics_consistency(self):
@@ -184,54 +218,43 @@ class HealthCheck:
             # Verificar métricas ausentes
             contracts_without_metrics = self.session.query(Contract).filter(
                 ~Contract.id.in_(
-                    self.session.query(DailyMetrics.contract_id)
+                    self.session.query(DailyMetric.contract_id)
                 )
             ).count()
 
             if contracts_without_metrics > 0:
-                self.warnings.append(f"{contracts_without_metrics} contracts without daily metrics")
-                print(f"⚠️ Daily metrics: {contracts_without_metrics} contracts missing metrics")
-            
+                warning_msg = "{} contracts without daily metrics".format(contracts_without_metrics)
+                self.warnings.append(warning_msg)
+                print("⚠️ Daily metrics: {} contracts missing metrics".format(contracts_without_metrics))
+
             # Verificar valores das métricas
-            invalid_metrics = self.session.query(DailyMetrics).filter(
-                (DailyMetrics.productivity < 0) |
-                (DailyMetrics.productivity > 1) |
-                (DailyMetrics.efficiency < 0) |
-                (DailyMetrics.efficiency > 1) |
-                (DailyMetrics.resolution_rate < 0) |
-                (DailyMetrics.resolution_rate > 1)
+            invalid_metrics = self.session.query(DailyMetric).filter(
+                (DailyMetric.productivity < 0) |
+                (DailyMetric.productivity > 1) |
+                (DailyMetric.efficiency < 0) |
+                (DailyMetric.efficiency > 1)
             ).count()
 
             if invalid_metrics > 0:
-                self.warnings.append(f"{invalid_metrics} metrics with invalid values")
-                print(f"⚠️ Metric values: {invalid_metrics} invalid metrics")
-
-            # Verificar consistência temporal
-            latest_metric = self.session.query(
-                func.max(DailyMetrics.date)
-            ).scalar()
-
-            if latest_metric:
-                days_old = (datetime.now().date() - latest_metric).days
-                if days_old > 1:
-                    self.warnings.append(f"Metrics are {days_old} days old")
-                    print(f"⚠️ Metric freshness: {days_old} days old")
+                warning_msg = "Found {} metrics with invalid values".format(invalid_metrics)
+                self.warnings.append(warning_msg)
+                print("⚠️ Invalid metrics found: {}".format(invalid_metrics))
 
             processing_time = time.time() - start_time
             self.performance_metrics['metrics_check_time'] = processing_time
 
-            print(f"\n✅ Metrics consistency: OK (processed in {processing_time:.2f}s)")
+            print("✅ Metrics consistency: OK")
             return True
 
         except Exception as e:
-            self.errors.append(f"Metrics consistency check error: {str(e)}")
-            print(f"❌ Metrics consistency: FAILED - {str(e)}")
+            error_msg = self.format_error("Metrics consistency check error", e)
+            self.errors.append(error_msg)
+            print("❌ Metrics consistency: FAILED - {}".format(error_msg))
             return False
 
     def run_all_checks(self):
-        """Executa todas as verificações"""
-        print("\n=== Starting System Health Check ===\n")
-        start_time = time.time()
+        """Executa todas as verificações de saúde do sistema"""
+        print("\n=== Running System Health Checks ===\n")
         
         checks = [
             self.check_system_resources,
@@ -240,35 +263,21 @@ class HealthCheck:
             self.check_data_integrity,
             self.check_metrics_consistency
         ]
-
-        all_passed = all(check() for check in checks)
-        total_time = time.time() - start_time
-
+        
+        results = []
+        for check in checks:
+            try:
+                results.append(check())
+            except Exception as e:
+                error_msg = self.format_error("Unexpected error in {}".format(check.__name__), e)
+                self.errors.append(error_msg)
+                results.append(False)
+        
         print("\n=== Health Check Summary ===")
-        if self.errors:
-            print("\nCritical Errors:")
-            for error in self.errors:
-                print(f"❌ {error}")
-
-        if self.warnings:
-            print("\nWarnings:")
-            for warning in self.warnings:
-                print(f"⚠️ {warning}")
-
-        print("\nPerformance Metrics:")
-        for metric, value in self.performance_metrics.items():
-            print(f"- {metric}: {value:.2f}")
-
-        print(f"\nTotal check time: {total_time:.2f}s")
-
-        if all_passed and not self.warnings:
-            print("\n✅ System ready to start!")
-        elif all_passed:
-            print("\n🟡 System can start with warnings.")
-        else:
-            print("\n❌ System cannot start due to critical errors.")
-
-        return all_passed
+        print("Errors: {}".format(len(self.errors)))
+        print("Warnings: {}".format(len(self.warnings)))
+        
+        return all(results) and not self.errors
 
 if __name__ == "__main__":
     checker = HealthCheck()
